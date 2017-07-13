@@ -1,8 +1,8 @@
 package route
 
-type NamespaceRoute interface {
-	Namespace() (method string)
+type NamespaceRoute struct {
+	Namespace string
 
-	Routes() []Route
-	RestRoutes() []RestRoute
+	Routes     []Route
+	RestRoutes []RestRoute
 }

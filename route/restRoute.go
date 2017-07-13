@@ -6,8 +6,8 @@ import (
 )
 
 type RestRoute interface {
-	Method() (method string)
-	Path() (path string)
+	Method() string
+	Path() string
 	Process(r *http.Request) (body interface{}, error *HttpServerError)
 }
 

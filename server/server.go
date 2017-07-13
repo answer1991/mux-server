@@ -12,7 +12,7 @@ func NewServer(port int) *Server {
 		Port:            port,
 		routes:          []route.Route{},
 		restRoutes:      []route.RestRoute{},
-		namespaceRoutes: []route.NamespaceRoute{},
+		namespaceRoutes: []*route.NamespaceRoute{},
 	}
 }
 
@@ -22,9 +22,10 @@ type Server struct {
 
 	routes          []route.Route
 	restRoutes      []route.RestRoute
-	namespaceRoutes []route.NamespaceRoute
+	namespaceRoutes []*route.NamespaceRoute
 
 	muxRouter *mux.Router
+	staticDir string
 }
 
 func (this *Server) Serve() (err error) {
@@ -36,30 +37,70 @@ func (this *Server) Serve() (err error) {
 func (this *Server) init() {
 	w := mux.NewRouter()
 
-	for _, r := range this.routes {
-		w.PathPrefix(fmt.Sprintf("/%s", this.Version)).Path(r.Path()).Methods(r.Method()).HandlerFunc(r.Process)
+	if "" == this.Version {
+		this.Version = "v{version:[0-9.]+}"
+	}
 
-		w.Path(r.Path()).Methods(r.Method()).HandlerFunc(r.Process)
+	for _, r := range this.routes {
+		w.
+			PathPrefix(fmt.Sprintf("/%s", this.Version)).
+			Path(r.Path()).
+			Methods(r.Method()).
+			HandlerFunc(r.Process)
+
+		w.
+			Path(r.Path()).
+			Methods(r.Method()).
+			HandlerFunc(r.Process)
 	}
 
 	for _, r := range this.restRoutes {
-		w.PathPrefix(fmt.Sprintf("/%s", this.Version)).Path(r.Path()).Methods(r.Method()).HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+		w.
+			PathPrefix(fmt.Sprintf("/%s", this.Version)).
+			Path(r.Path()).
+			Methods(r.Method()).
+			HandlerFunc(route.ConvertToHandlerFunc(r.Process))
 
-		w.Path(r.Path()).Methods(r.Method()).HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+		w.
+			Path(r.Path()).
+			Methods(r.Method()).
+			HandlerFunc(route.ConvertToHandlerFunc(r.Process))
 	}
 
 	for _, nr := range this.namespaceRoutes {
-		for _, r := range nr.Routes() {
-			w.PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace())).Path(r.Path()).Methods(r.Method()).HandlerFunc(r.Process)
+		for _, r := range nr.Routes {
+			w.
+				PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace)).
+				Path(r.Path()).
+				Methods(r.Method()).
+				HandlerFunc(r.Process)
 
-			w.PathPrefix(fmt.Sprintf("/%s", nr.Namespace())).Path(r.Path()).Methods(r.Method()).HandlerFunc(r.Process)
+			w.
+				PathPrefix(fmt.Sprintf("/%s", nr.Namespace)).
+				Path(r.Path()).
+				Methods(r.Method()).
+				HandlerFunc(r.Process)
 		}
 
-		for _, r := range nr.RestRoutes() {
-			w.PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace())).Path(r.Path()).Methods(r.Method()).HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+		for _, r := range nr.RestRoutes {
+			w.
+				PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace)).
+				Path(r.Path()).
+				Methods(r.Method()).
+				HandlerFunc(route.ConvertToHandlerFunc(r.Process))
 
-			w.PathPrefix(fmt.Sprintf("/%s", nr.Namespace())).Path(r.Path()).Methods(r.Method()).HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+			w.
+				PathPrefix(fmt.Sprintf("/%s", nr.Namespace)).
+				Path(r.Path()).
+				Methods(r.Method()).
+				HandlerFunc(route.ConvertToHandlerFunc(r.Process))
 		}
+	}
+
+	if "" != this.staticDir {
+		w.
+			PathPrefix("/").
+			Handler(http.StripPrefix("/", http.FileServer(http.Dir(this.staticDir))))
 	}
 
 	this.muxRouter = w
@@ -73,6 +114,10 @@ func (this *Server) AddRestRoute(r route.RestRoute) {
 	this.restRoutes = append(this.restRoutes, r)
 }
 
-func (this *Server) AddNamespaceRoute(r route.NamespaceRoute) {
+func (this *Server) AddNamespaceRoute(r *route.NamespaceRoute) {
 	this.namespaceRoutes = append(this.namespaceRoutes, r)
+}
+
+func (this *Server) SetStaticFilePath(dir string) {
+	this.staticDir = dir
 }

@@ -1,57 +1,84 @@
 package server
 
 import (
-	"errors"
 	"github.com/answer1991/mux-server/route"
 	"log"
 	"net/http"
+	"path"
 	"testing"
 )
 
-type TestRestRoute struct {
+type testStruct struct {
+	Name string `json:"name"`
 }
 
-func (this *TestRestRoute) Method() (ret string) {
+type testRouter struct {
+	Context string
+}
+
+func (r *testRouter) Method() string {
 	return http.MethodPost
 }
 
-func (this *TestRestRoute) Path() (ret string) {
+func (r *testRouter) Path() string {
 	return "/test"
 }
 
-func (this *TestRestRoute) Process(r *http.Request) (body interface{}, error *route.HttpServerError) {
+func (r *testRouter) Process(req *http.Request) (body interface{}, error *route.HttpServerError) {
+	test := &testStruct{}
+	UnmarshalRequestBodyToJson(req, test)
+
 	return map[string]interface{}{
-		"test":  "hello-world",
-		"value": r.FormValue("name"),
-		"body":  r.PostFormValue(""),
+		"test":    "hello-world",
+		"value":   req.FormValue("name"),
+		"body":    test,
+		"context": r.Context,
 	}, nil
 }
 
-type TestRestErrRoute struct {
-}
+//var TestRestRoute = &route.RestRoute{
+//	Method: http.MethodPost,
+//	Path:   "/test",
+//	Process: func(r *http.Request) (body interface{}, error *route.HttpServerError) {
+//		test := &testStruct{}
+//		UnmarshalRequestBodyToJson(r, test)
+//
+//		return map[string]interface{}{
+//			"test":  "hello-world",
+//			"value": r.FormValue("name"),
+//			"body":  test,
+//		}, nil
+//	},
+//}
 
-func (this *TestRestErrRoute) Method() (ret string) {
-	return http.MethodGet
-}
-
-func (this *TestRestErrRoute) Path() (ret string) {
-	return "/testErr"
-}
-
-func (this *TestRestErrRoute) Process(r *http.Request) (body interface{}, error *route.HttpServerError) {
-	return nil, &route.HttpServerError{
-		Code:  503,
-		Error: errors.New("something goes wrong"),
-	}
-}
+//type TestRestErrRoute struct {
+//}
+//
+//func (this *TestRestErrRoute) Method() (ret string) {
+//	return http.MethodGet
+//}
+//
+//func (this *TestRestErrRoute) Path() (ret string) {
+//	return "/testErr"
+//}
+//
+//func (this *TestRestErrRoute) Process(r *http.Request) (body interface{}, error *route.HttpServerError) {
+//	return nil, &route.HttpServerError{
+//		Code:  503,
+//		Error: errors.New("something goes wrong"),
+//	}
+//}
 
 func TestNewServer(t *testing.T) {
 	s := NewServer(80)
 
-	s.Version = "v1"
+	//s.Version = "v1"
 
-	s.AddRestRoute(&TestRestRoute{})
-	s.AddRestRoute(&TestRestErrRoute{})
+	s.AddRestRoute(&testRouter{
+		Context: "hello world",
+	})
+
+	s.SetStaticFilePath(path.Join("..", "public"))
 
 	log.Fatal(s.Serve())
 }
