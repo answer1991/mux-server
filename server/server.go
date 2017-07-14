@@ -1,9 +1,11 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"github.com/answer1991/mux-server/route"
 	"github.com/gorilla/mux"
+	"net"
 	"net/http"
 )
 
@@ -28,10 +30,29 @@ type Server struct {
 	staticDir string
 }
 
-func (this *Server) Serve() (err error) {
+func (this *Server) Serve(ctx context.Context) (err error) {
 	this.init()
 
-	return http.ListenAndServe(fmt.Sprintf(":%d", this.Port), this.muxRouter)
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", this.Port))
+
+	if nil != err {
+		return err
+	}
+
+	go func() {
+		http.Serve(l, this.muxRouter)
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				l.Close()
+			}
+		}
+	}()
+
+	return nil
 }
 
 func (this *Server) init() {
