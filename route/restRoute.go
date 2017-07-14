@@ -35,13 +35,17 @@ func ConvertToHandlerFunc(process func(r *http.Request) (body interface{}, error
 				w.Write(data)
 			}
 		} else {
-			data, marshalErr := json.Marshal(body)
-
-			if nil != marshalErr {
-				w.WriteHeader(500)
-				w.Write([]byte(marshalErr.Error()))
-			} else {
+			if data, ok := body.([]byte); ok {
 				w.Write(data)
+			} else {
+				data, marshalErr := json.Marshal(body)
+
+				if nil != marshalErr {
+					w.WriteHeader(500)
+					w.Write([]byte(marshalErr.Error()))
+				} else {
+					w.Write(data)
+				}
 			}
 		}
 	}
