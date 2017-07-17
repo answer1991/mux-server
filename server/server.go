@@ -66,10 +66,10 @@ func (this *Server) initRoute(r route.Route, namespace string) {
 
 	vRouter := this.muxRouter.
 		PathPrefix(fmt.Sprintf("/%s", this.Version)).
-		Path(r.Path())
+		Path(path)
 
 	router := this.muxRouter.
-		Path(r.Path())
+		Path(path)
 
 	if methods := r.Methods(); nil != methods && 0 < len(methods) {
 		vRouter.Methods(methods...)
@@ -89,10 +89,10 @@ func (this *Server) initRestRoute(r route.RestRoute, namespace string) {
 
 	vRouter := this.muxRouter.
 		PathPrefix(fmt.Sprintf("/%s", this.Version)).
-		Path(r.Path())
+		Path(path)
 
 	router := this.muxRouter.
-		Path(r.Path())
+		Path(path)
 
 	if methods := r.Methods(); nil != methods && 0 < len(methods) {
 		vRouter.Methods(methods...)
