@@ -3,7 +3,7 @@ package route
 import "net/http"
 
 type Route interface {
-	Method() string
+	Methods() []string
 	Path() string
 	Process(w http.ResponseWriter, r *http.Request)
 }
