@@ -55,66 +55,65 @@ func (this *Server) Serve(ctx context.Context) (err error) {
 	return nil
 }
 
+func (this *Server) initRoute(r route.Route) {
+	vRouter := this.muxRouter.
+		PathPrefix(fmt.Sprintf("/%s", this.Version)).
+		Path(r.Path())
+
+	router := this.muxRouter.
+		Path(r.Path())
+
+	if methods := r.Methods(); nil != methods && 0 < len(methods) {
+		vRouter.Methods(methods...)
+		router.Methods(methods...)
+	}
+
+	vRouter.HandlerFunc(r.Process)
+	router.HandlerFunc(r.Process)
+}
+
+func (this *Server) initRestRoute(r route.RestRoute) {
+	vRouter := this.muxRouter.
+		PathPrefix(fmt.Sprintf("/%s", this.Version)).
+		Path(r.Path())
+
+	router := this.muxRouter.
+		Path(r.Path())
+
+	if methods := r.Methods(); nil != methods && 0 < len(methods) {
+		vRouter.Methods(methods...)
+		router.Methods(methods...)
+	}
+
+	fn := route.ConvertToHandlerFunc(r.Process)
+
+	vRouter.HandlerFunc(fn)
+	router.HandlerFunc(fn)
+}
+
 func (this *Server) init() {
 	w := mux.NewRouter()
+	this.muxRouter = w
 
 	if "" == this.Version {
 		this.Version = "v{version:[0-9.]+}"
 	}
 
 	for _, r := range this.routes {
-		w.
-			PathPrefix(fmt.Sprintf("/%s", this.Version)).
-			Path(r.Path()).
-			Methods(r.Method()).
-			HandlerFunc(r.Process)
-
-		w.
-			Path(r.Path()).
-			Methods(r.Method()).
-			HandlerFunc(r.Process)
+		this.initRoute(r)
 	}
 
 	for _, r := range this.restRoutes {
-		w.
-			PathPrefix(fmt.Sprintf("/%s", this.Version)).
-			Path(r.Path()).
-			Methods(r.Method()).
-			HandlerFunc(route.ConvertToHandlerFunc(r.Process))
-
-		w.
-			Path(r.Path()).
-			Methods(r.Method()).
-			HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+		this.initRestRoute(r)
 	}
 
 	for _, nr := range this.namespaceRoutes {
 		for _, r := range nr.Routes {
-			w.
-				PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace)).
-				Path(r.Path()).
-				Methods(r.Method()).
-				HandlerFunc(r.Process)
-
-			w.
-				PathPrefix(fmt.Sprintf("/%s", nr.Namespace)).
-				Path(r.Path()).
-				Methods(r.Method()).
-				HandlerFunc(r.Process)
+			this.initRoute(r)
 		}
 
 		for _, r := range nr.RestRoutes {
-			w.
-				PathPrefix(fmt.Sprintf("/%s/%s", this.Version, nr.Namespace)).
-				Path(r.Path()).
-				Methods(r.Method()).
-				HandlerFunc(route.ConvertToHandlerFunc(r.Process))
-
-			w.
-				PathPrefix(fmt.Sprintf("/%s", nr.Namespace)).
-				Path(r.Path()).
-				Methods(r.Method()).
-				HandlerFunc(route.ConvertToHandlerFunc(r.Process))
+			this.initRestRoute(r)
 		}
 	}
 

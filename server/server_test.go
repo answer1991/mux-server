@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/answer1991/mux-server/route"
 	"log"
 	"net/http"
@@ -16,8 +17,8 @@ type testRouter struct {
 	Context string
 }
 
-func (r *testRouter) Method() string {
-	return http.MethodPost
+func (r *testRouter) Methods() []string {
+	return []string{}
 }
 
 func (r *testRouter) Path() string {
@@ -80,5 +81,9 @@ func TestNewServer(t *testing.T) {
 
 	s.SetStaticFilePath(path.Join("..", "public"))
 
-	log.Fatal(s.Serve())
+	cxt := context.Background()
+
+	log.Println(s.Serve(cxt))
+
+	<-make(chan string)
 }
