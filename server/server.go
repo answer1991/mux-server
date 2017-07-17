@@ -57,7 +57,13 @@ func (this *Server) Serve(ctx context.Context) (err error) {
 	return nil
 }
 
-func (this *Server) initRoute(r route.Route) {
+func (this *Server) initRoute(r route.Route, namespace string) {
+	path := r.Path()
+
+	if "" != namespace {
+		path = fmt.Sprintf("/%s%s", namespace, path)
+	}
+
 	vRouter := this.muxRouter.
 		PathPrefix(fmt.Sprintf("/%s", this.Version)).
 		Path(r.Path())
@@ -74,7 +80,13 @@ func (this *Server) initRoute(r route.Route) {
 	router.HandlerFunc(r.Process)
 }
 
-func (this *Server) initRestRoute(r route.RestRoute) {
+func (this *Server) initRestRoute(r route.RestRoute, namespace string) {
+	path := r.Path()
+
+	if "" != namespace {
+		path = fmt.Sprintf("/%s%s", namespace, path)
+	}
+
 	vRouter := this.muxRouter.
 		PathPrefix(fmt.Sprintf("/%s", this.Version)).
 		Path(r.Path())
@@ -102,20 +114,20 @@ func (this *Server) init() {
 	}
 
 	for _, r := range this.routes {
-		this.initRoute(r)
+		this.initRoute(r, "")
 	}
 
 	for _, r := range this.restRoutes {
-		this.initRestRoute(r)
+		this.initRestRoute(r, "")
 	}
 
 	for _, nr := range this.namespaceRoutes {
 		for _, r := range nr.Routes {
-			this.initRoute(r)
+			this.initRoute(r, nr.Namespace)
 		}
 
 		for _, r := range nr.RestRoutes {
-			this.initRestRoute(r)
+			this.initRestRoute(r, nr.Namespace)
 		}
 	}
 

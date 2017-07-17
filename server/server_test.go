@@ -18,7 +18,7 @@ type testRouter struct {
 }
 
 func (r *testRouter) Methods() []string {
-	return []string{}
+	return []string{http.MethodGet}
 }
 
 func (r *testRouter) Path() string {
