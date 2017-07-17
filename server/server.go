@@ -148,3 +148,7 @@ func (this *Server) AddNamespaceRoute(r *route.NamespaceRoute) {
 func (this *Server) SetStaticFilePath(dir string) {
 	this.staticDir = dir
 }
+
+func (this *Server) SetDefaultRoute(r route.DefaultRoute) {
+	this.defaultRoute = r
+}
