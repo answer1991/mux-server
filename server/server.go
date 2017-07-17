@@ -26,6 +26,8 @@ type Server struct {
 	restRoutes      []route.RestRoute
 	namespaceRoutes []*route.NamespaceRoute
 
+	defaultRoute route.DefaultRoute
+
 	muxRouter *mux.Router
 	staticDir string
 }
@@ -123,7 +125,12 @@ func (this *Server) init() {
 			Handler(http.StripPrefix("/", http.FileServer(http.Dir(this.staticDir))))
 	}
 
-	this.muxRouter = w
+	if nil != this.defaultRoute {
+		w.
+			PathPrefix("/").
+			HandlerFunc(this.defaultRoute.Process)
+	}
+
 }
 
 func (this *Server) AddRoute(r route.Route) {
