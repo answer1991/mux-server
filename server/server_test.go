@@ -2,11 +2,15 @@ package server
 
 import (
 	"context"
-	"github.com/answer1991/mux-server/route"
 	"log"
 	"net/http"
 	"path"
 	"testing"
+	"time"
+
+	"errors"
+
+	"github.com/answer1991/mux-server/route"
 )
 
 type testStruct struct {
@@ -29,12 +33,19 @@ func (r *testRouter) Process(req *http.Request) (body interface{}, error *route.
 	test := &testStruct{}
 	UnmarshalRequestBodyToJson(req, test)
 
-	return map[string]interface{}{
-		"test":    "hello-world",
-		"value":   req.FormValue("name"),
-		"body":    test,
-		"context": r.Context,
-	}, nil
+	time.Sleep(time.Second * 2)
+
+	//return map[string]interface{}{
+	//	"test":    "hello-world",
+	//	"value":   req.FormValue("name"),
+	//	"body":    test,
+	//	"context": r.Context,
+	//}, nil
+
+	return nil, &route.HttpServerError{
+		Code:  400,
+		Error: errors.New("test"),
+	}
 }
 
 //var TestRestRoute = &route.RestRoute{
@@ -55,15 +66,15 @@ func (r *testRouter) Process(req *http.Request) (body interface{}, error *route.
 //type TestRestErrRoute struct {
 //}
 //
-//func (this *TestRestErrRoute) Method() (ret string) {
+//func (s *TestRestErrRoute) Method() (ret string) {
 //	return http.MethodGet
 //}
 //
-//func (this *TestRestErrRoute) Path() (ret string) {
+//func (s *TestRestErrRoute) Path() (ret string) {
 //	return "/testErr"
 //}
 //
-//func (this *TestRestErrRoute) Process(r *http.Request) (body interface{}, error *route.HttpServerError) {
+//func (s *TestRestErrRoute) Process(r *http.Request) (body interface{}, error *route.HttpServerError) {
 //	return nil, &route.HttpServerError{
 //		Code:  503,
 //		Error: errors.New("something goes wrong"),

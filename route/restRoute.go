@@ -23,20 +23,7 @@ func ConvertToHandlerFunc(process func(r *http.Request) (body interface{}, error
 		w.Header().Add(contentTypeKey, contentTypeJson)
 
 		if nil != err {
-			//data, marshalErr := json.Marshal(map[string]interface{}{
-			//	"err": err.Error.Error(),
-			//})
-			//
-			//if nil != marshalErr {
-			//	w.WriteHeader(500)
-			//	w.Write([]byte(marshalErr.Error()))
-			//} else {
-			//	w.WriteHeader(err.Code)
-			//	w.Write(data)
-			//}
-
-			w.WriteHeader(err.Code)
-			w.Write([]byte(err.Error.Error()))
+			http.Error(w, err.Error.Error(), err.Code)
 		} else {
 			if data, ok := body.([]byte); ok {
 				w.Write(data)
@@ -44,8 +31,7 @@ func ConvertToHandlerFunc(process func(r *http.Request) (body interface{}, error
 				data, marshalErr := json.Marshal(body)
 
 				if nil != marshalErr {
-					w.WriteHeader(500)
-					w.Write([]byte(marshalErr.Error()))
+					http.Error(w, marshalErr.Error(), http.StatusInternalServerError)
 				} else {
 					w.Write(data)
 				}

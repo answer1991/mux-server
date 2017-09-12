@@ -3,10 +3,12 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/answer1991/mux-server/route"
-	"github.com/gorilla/mux"
 	"net"
 	"net/http"
+
+	"github.com/answer1991/mux-server/middleware"
+	"github.com/answer1991/mux-server/route"
+	"github.com/gorilla/mux"
 )
 
 func NewServer(port int) *Server {
@@ -32,17 +34,17 @@ type Server struct {
 	staticDir string
 }
 
-func (this *Server) Serve(ctx context.Context) (err error) {
-	this.init()
+func (s *Server) Serve(ctx context.Context) (err error) {
+	s.init()
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", this.Port))
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 
 	if nil != err {
 		return err
 	}
 
 	go func() {
-		http.Serve(l, this.muxRouter)
+		http.Serve(l, s.muxRouter)
 	}()
 
 	go func() {
@@ -57,18 +59,18 @@ func (this *Server) Serve(ctx context.Context) (err error) {
 	return nil
 }
 
-func (this *Server) initRoute(r route.Route, namespace string) {
+func (s *Server) initRoute(r route.Route, namespace string) {
 	path := r.Path()
 
 	if "" != namespace {
 		path = fmt.Sprintf("/%s%s", namespace, path)
 	}
 
-	vRouter := this.muxRouter.
-		PathPrefix(fmt.Sprintf("/%s", this.Version)).
+	vRouter := s.muxRouter.
+		PathPrefix(fmt.Sprintf("/%s", s.Version)).
 		Path(path)
 
-	router := this.muxRouter.
+	router := s.muxRouter.
 		Path(path)
 
 	if methods := r.Methods(); nil != methods && 0 < len(methods) {
@@ -76,22 +78,24 @@ func (this *Server) initRoute(r route.Route, namespace string) {
 		router.Methods(methods...)
 	}
 
-	vRouter.HandlerFunc(r.Process)
-	router.HandlerFunc(r.Process)
+	vRouter.Handler(
+		middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
+	router.Handler(
+		middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
 }
 
-func (this *Server) initRestRoute(r route.RestRoute, namespace string) {
+func (s *Server) initRestRoute(r route.RestRoute, namespace string) {
 	path := r.Path()
 
 	if "" != namespace {
 		path = fmt.Sprintf("/%s%s", namespace, path)
 	}
 
-	vRouter := this.muxRouter.
-		PathPrefix(fmt.Sprintf("/%s", this.Version)).
+	vRouter := s.muxRouter.
+		PathPrefix(fmt.Sprintf("/%s", s.Version)).
 		Path(path)
 
-	router := this.muxRouter.
+	router := s.muxRouter.
 		Path(path)
 
 	if methods := r.Methods(); nil != methods && 0 < len(methods) {
@@ -101,66 +105,72 @@ func (this *Server) initRestRoute(r route.RestRoute, namespace string) {
 
 	fn := route.ConvertToHandlerFunc(r.Process)
 
-	vRouter.HandlerFunc(fn)
-	router.HandlerFunc(fn)
+	vRouter.Handler(
+		middleware.Use(http.HandlerFunc(fn), middleware.Access))
+	router.Handler(
+		middleware.Use(http.HandlerFunc(fn), middleware.Access))
 }
 
-func (this *Server) init() {
+func (s *Server) init() {
 	w := mux.NewRouter()
-	this.muxRouter = w
+	s.muxRouter = w
 
-	if "" == this.Version {
-		this.Version = "v{version:[0-9.]+}"
+	if "" == s.Version {
+		s.Version = "v{version:[0-9.]+}"
 	}
 
-	for _, r := range this.routes {
-		this.initRoute(r, "")
+	for _, r := range s.routes {
+		s.initRoute(r, "")
 	}
 
-	for _, r := range this.restRoutes {
-		this.initRestRoute(r, "")
+	for _, r := range s.restRoutes {
+		s.initRestRoute(r, "")
 	}
 
-	for _, nr := range this.namespaceRoutes {
+	for _, nr := range s.namespaceRoutes {
 		for _, r := range nr.Routes {
-			this.initRoute(r, nr.Namespace)
+			s.initRoute(r, nr.Namespace)
 		}
 
 		for _, r := range nr.RestRoutes {
-			this.initRestRoute(r, nr.Namespace)
+			s.initRestRoute(r, nr.Namespace)
 		}
 	}
 
-	if "" != this.staticDir {
+	if "" != s.staticDir {
 		w.
 			PathPrefix("/").
-			Handler(http.StripPrefix("/", http.FileServer(http.Dir(this.staticDir))))
+			Handler(http.StripPrefix("/", http.FileServer(http.Dir(s.staticDir))))
 	}
 
-	if nil != this.defaultRoute {
+	if nil != s.defaultRoute {
 		w.
 			PathPrefix("/").
-			HandlerFunc(this.defaultRoute.Process)
+			HandlerFunc(s.defaultRoute.Process)
+	} else {
+		//w.
+		//	PathPrefix("/").
+		//	Handler(middleware.Use(http.NotFoundHandler(), middleware.Access))
 	}
 
 }
 
-func (this *Server) AddRoute(r route.Route) {
-	this.routes = append(this.routes, r)
+func (s *Server) AddRoute(r route.Route) {
+	s.routes = append(s.routes, r)
 }
 
-func (this *Server) AddRestRoute(r route.RestRoute) {
-	this.restRoutes = append(this.restRoutes, r)
+func (s *Server) AddRestRoute(r route.RestRoute) {
+	s.restRoutes = append(s.restRoutes, r)
 }
 
-func (this *Server) AddNamespaceRoute(r *route.NamespaceRoute) {
-	this.namespaceRoutes = append(this.namespaceRoutes, r)
+func (s *Server) AddNamespaceRoute(r *route.NamespaceRoute) {
+	s.namespaceRoutes = append(s.namespaceRoutes, r)
 }
 
-func (this *Server) SetStaticFilePath(dir string) {
-	this.staticDir = dir
+func (s *Server) SetStaticFilePath(dir string) {
+	s.staticDir = dir
 }
 
-func (this *Server) SetDefaultRoute(r route.DefaultRoute) {
-	this.defaultRoute = r
+func (s *Server) SetDefaultRoute(r route.DefaultRoute) {
+	s.defaultRoute = r
 }
