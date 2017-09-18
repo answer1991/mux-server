@@ -78,10 +78,13 @@ func (s *Server) initRoute(r route.Route, namespace string) {
 		router.Methods(methods...)
 	}
 
-	vRouter.Handler(
-		middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
-	router.Handler(
-		middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
+	//vRouter.Handler(
+	//	middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
+	//router.Handler(
+	//	middleware.Use(http.HandlerFunc(r.Process), middleware.Access))
+
+	vRouter.HandlerFunc(r.Process)
+	router.HandlerFunc(r.Process)
 }
 
 func (s *Server) initRestRoute(r route.RestRoute, namespace string) {
